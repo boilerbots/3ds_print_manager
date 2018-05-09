@@ -147,16 +147,13 @@ class CubePro:
             pf_length = len(pf)
             print("read file: {}  length={:#x}".format(cube_file, pf_length))
             just_name = os.path.basename(cube_file)
-            beg = '{"header":{"msg_type":1,"msg_method":102,"version":1},"payload":{"file_name":"'+just_name+'","file_size":'
-            end = '}}\0'
-            message = '{}{:E}{}'.format(beg, pf_length, end)
-            print("message: {}\n".format(message))
+            message = '{"header":{"msg_type":1,"msg_method":102,"version":1},"payload":{"file_name":"'+just_name+'","file_size":0}}\0'
             self.sendAndCheck(message)
 
         # now upload the file.
         upload_socket = MySocket()
         upload_socket.connect(self.address, 30305)
-        header = pf[4:8]+b'\x00\x00\x00\x00'
+        header = (pf_length).to_bytes(4, byteorder='little')+b'\x00\x00\x00\x00'
         upload_socket.flush()
         upload_socket.rawSend(header)
         upload_socket.rawSend(pf)
