@@ -69,10 +69,12 @@ class MySocket:
         self.sock.settimeout(5.0)
 
 class CubePro:
-    def __init__(self, address):
+    def __init__(self, address, cube3 = False, nocheck = False):
         self.address = address
         self.socket = MySocket()
         self.socket.connect(address, 30304)
+        self.cube3 = cube3
+        self.nocheck = nocheck
 
     def identify(self):
         ''' Fetch printer details with this message
@@ -108,11 +110,12 @@ class CubePro:
 
         self.socket.flush()
         self.socket.mysend(message)
-        receive_message = self.socket.myreceive().decode()
-        config = json.loads(receive_message)
-        if config['header']['msg_method'] != expected_method:
-            print("Error processing response")
-            print("Received: {}\n".format(receive_message))
+        if not self.nocheck:
+            receive_message = self.socket.myreceive().decode()
+            config = json.loads(receive_message)
+            if config['header']['msg_method'] != expected_method:
+                print("Error processing response")
+                print("Received: {}\n".format(receive_message))
 
     def ping(self):
         ''' Ping the printer
@@ -170,19 +173,24 @@ def main():
     parser.add_argument('-i', '--ip', default='10.0.10.204', help='IP address of printer')
     parser.add_argument('-p', '--port', default=30304, type=int, help='Port over which to connect')
     parser.add_argument('-f', '--file', default='', help='file to send to printer')
+    parser.add_argument('--cube3', action='store_true', help='Cube 3 type printer')
+    parser.add_argument('--nocheck', action='store_true', help='Don\'t check for a response')
 
     # Get the arguments
     args = parser.parse_args()
 
-    printer = CubePro(args.ip)
+    printer = CubePro(args.ip, args.cube3, args.nocheck)
 
     #printer.identify()
     #time.sleep(1)
     #printer.materialCheck()
     #time.sleep(1)
 
-    printer.method25()
+    printer.method25()  # wake up
+    time.sleep(3) # give the printer time to wake up
     printer.printFile(args.file)
+    if args.cube3:
+        time.sleep(15) # cube 3 needs time to process
     printer.method11(args.file)
 
     while False:
